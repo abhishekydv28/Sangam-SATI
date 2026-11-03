@@ -1,0 +1,6 @@
+{
+  "name": "SATI Fest Hub",
+  "description": "Official festival and event portal for Samrat Ashok Technological Institute (SATI), Vidisha. Featuring TECHNOVISION 2026, SAMRAT UTSAV 2027, and the 2027 Sports Activity Calendar.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
