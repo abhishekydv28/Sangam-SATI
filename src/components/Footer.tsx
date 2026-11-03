@@ -1,4 +1,5 @@
 import React from 'react';
+import { SangamLogo, SatiCollegeLogo } from './Logos';
 
 interface FooterProps {
   onNavigate: (sectionId: string) => void;
@@ -6,19 +7,21 @@ interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   return (
-    <footer className="w-full bg-slate-900 text-slate-400 text-xs border-t border-slate-800 pt-12 pb-8">
+    <footer className="w-full bg-[#02050f] text-slate-400 text-xs border-t border-slate-800 pt-12 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-10 border-b border-slate-800">
-          {/* Col 1: Institute Brand */}
-          <div className="space-y-3">
-            <span className="text-base font-extrabold text-white tracking-tight block">
-              SATI Fest Hub
-            </span>
+          {/* Col 1: Institute Brand & Logos */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <SangamLogo className="h-9" showWordmark={true} />
+              <span className="h-6 w-px bg-slate-700" />
+              <SatiCollegeLogo className="h-9" showSubtext={false} />
+            </div>
             <p className="text-slate-400 leading-relaxed text-xs">
-              Official festival portal for Samrat Ashok Technological Institute, Vidisha (M.P.). Established 1960. One Campus. Two Festivals. Endless Possibilities.
+              <strong>Sangam</strong> is the official annual festival confluence of Samrat Ashok Technological Institute, Vidisha (M.P.). Uniting the technical prowess of Technovision and the cultural vibrance of Samrat Utsav.
             </p>
             <div className="text-[11px] text-slate-500">
-              Approved by AICTE · Affiliated to RGPV, Bhopal
+              Approved by AICTE · Affiliated to RGPV, Bhopal · Est. 1960
             </div>
           </div>
 
@@ -94,10 +97,10 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         {/* Bottom bar */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
           <div>
-            © 2026–2027 Samrat Ashok Technological Institute, Vidisha. CODE CRACK 3.0.
+            © 2026–2027 Sangam · Samrat Ashok Technological Institute, Vidisha.
           </div>
           <div className="text-slate-500">
-            Browser-ready client portal · All rights reserved.
+            One Campus. Two Festivals. Endless Possibilities.
           </div>
         </div>
       </div>

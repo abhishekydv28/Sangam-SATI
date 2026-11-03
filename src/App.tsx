@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   FESTIVAL_DETAILS, 
   TECHNOVISION_EVENTS, 
@@ -12,8 +12,9 @@ import {
   SPORTS_ACTIVITIES,
   FestEvent 
 } from './data/festivalsData';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthModal } from './components/AuthModal';
 import { Navbar } from './components/Navbar';
-import { CinematicHeroIntro } from './components/CinematicHeroIntro';
 import { CountdownTimer } from './components/CountdownTimer';
 import { ScheduleExplorer } from './components/ScheduleExplorer';
 import { EventModal } from './components/EventModal';
@@ -21,12 +22,14 @@ import { RegistrationForm } from './components/RegistrationForm';
 import { PhotoGallery } from './components/PhotoGallery';
 import { CampusGuide } from './components/CampusGuide';
 import { Footer } from './components/Footer';
+import { SangamLogo, SatiCollegeLogo } from './components/Logos';
 
 import { 
   Calendar, 
   MapPin, 
   Sparkles, 
   ChevronRight, 
+  ChevronDown,
   Cpu, 
   Music, 
   Trophy, 
@@ -41,17 +44,19 @@ import {
   Printer,
   Compass,
   ArrowRight,
-  Play,
-  RotateCcw
+  ShieldCheck,
+  LogIn,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 
-export default function App() {
-  // First-load cinematic animation state: "WHEN ANIMATION IS PLAYING NOTHING SHOULD COME ON SCREEN OTHER THAN THAT"
-  const [isPlayingCinematic, setIsPlayingCinematic] = useState(true);
-
+function SangamFestApp() {
+  const { user, profile, signOut } = useAuth();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('overview');
   const [selectedEvent, setSelectedEvent] = useState<FestEvent | null>(null);
   const [preselectedEventForReg, setPreselectedEventForReg] = useState<FestEvent | null>(null);
+  const [isLandingVideoMuted, setIsLandingVideoMuted] = useState(true);
   
   // Bookmarks / Personal Itinerary
   const [bookmarks, setBookmarks] = useState<string[]>(() => {
@@ -63,6 +68,7 @@ export default function App() {
   });
 
   const [itineraryDrawerOpen, setItineraryDrawerOpen] = useState(false);
+  const landingVideoRef = useRef<HTMLVideoElement>(null);
 
   const toggleBookmark = (eventId: string) => {
     setBookmarks(prev => {
@@ -98,99 +104,195 @@ export default function App() {
     bookmarks.includes(e.id)
   );
 
-  // If the cinematic animation is playing, render EXCLUSIVELY the full-screen video:
-  // "WHEN ANIMATION IS PLAYING NOTHING SHOULD COME ON SCREEN OTHER THAN THAT"
-  if (isPlayingCinematic) {
-    return (
-      <CinematicHeroIntro 
-        onComplete={() => setIsPlayingCinematic(false)} 
-        videoSrc="/assets/aistudio/UFO_flying_and_landing_313a22aa_dd605a55.mp4"
-      />
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#030714] text-slate-100 flex flex-col font-sans cosmic-stars selection:bg-cyan-500/30 selection:text-cyan-200">
-      {/* Top Bar Contract (1-line Brand, 4-5 links, 1 primary action) */}
+      
+      {/* ========================================================================= */}
+      {/* CONTINUOUS LANDING VIEWPORT (Scrolls down away, reappears on scroll up)   */}
+      {/* "create the landing as a continuous part as when a person scroll down it  */}
+      {/* disappears but when he scroll up the landing also view again"             */}
+      {/* ========================================================================= */}
+      <section 
+        id="landing-hero" 
+        className="relative w-full h-screen min-h-[640px] flex flex-col justify-between overflow-hidden bg-black select-none z-10"
+      >
+        {/* Full-Screen Continuous UFO Landing Video Asset */}
+        <div className="absolute inset-0 z-0">
+          <video
+            ref={landingVideoRef}
+            src="/assets/aistudio/UFO_flying_and_landing_313a22aa_dd605a55.mp4"
+            autoPlay
+            loop
+            muted={isLandingVideoMuted}
+            playsInline
+            className="w-full h-full object-cover"
+          />
+          {/* Subtle Scrim for Contrast */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#030714] via-black/40 to-black/70" />
+        </div>
+
+        {/* Top Header Row of the Landing */}
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 flex items-center justify-between gap-4">
+          {/* Dual Brand Logos */}
+          <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border border-white/10">
+            <SangamLogo className="h-9 sm:h-10" showWordmark={true} />
+            <span className="h-6 w-px bg-white/20" />
+            <SatiCollegeLogo className="h-9 sm:h-10" showSubtext={false} />
+          </div>
+
+          {/* Controls: Mute toggle + Student Auth */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsLandingVideoMuted(!isLandingVideoMuted)}
+              className="p-2 rounded-full bg-black/40 hover:bg-black/70 text-white/80 hover:text-white backdrop-blur-md border border-white/10 transition-colors"
+              title={isLandingVideoMuted ? 'Unmute Audio' : 'Mute Audio'}
+              aria-label={isLandingVideoMuted ? 'Unmute Audio' : 'Mute Audio'}
+            >
+              {isLandingVideoMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </button>
+
+            {user ? (
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-cyan-500/40 text-xs">
+                <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                <span className="font-semibold text-white">{profile?.fullName}</span>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAuthModalOpen(true)}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-md border border-cyan-500/40 text-xs font-semibold text-cyan-300 hover:text-white transition-all"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Student Login</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => scrollToSection('overview')}
+              className="px-4 py-1.5 text-xs font-bold text-slate-950 bg-gradient-to-r from-cyan-400 to-sky-300 rounded-full hover:from-cyan-300 hover:to-sky-200 transition-all shadow-[0_0_15px_rgba(56,189,248,0.3)]"
+            >
+              Explore Hub
+            </button>
+          </div>
+        </div>
+
+        {/* Center Content of Continuous Landing */}
+        <div className="relative z-10 w-full max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-4 py-8">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/50 backdrop-blur-md border border-cyan-500/30 text-xs font-semibold text-cyan-300">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(56,189,248,0.9)]" />
+            <span>Samrat Ashok Technological Institute (SATI), Vidisha</span>
+          </div>
+
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white drop-shadow-xl leading-none">
+            SANGAM <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-cyan-300 bg-clip-text text-transparent">2026–27</span>
+          </h1>
+
+          <p className="text-sm sm:text-lg text-slate-200 max-w-2xl mx-auto font-medium drop-shadow-md leading-relaxed">
+            One Campus. Two Festivals. Endless Possibilities. The grand confluence of <strong className="text-cyan-300">TECHNOVISION 2026</strong> and <strong className="text-amber-300">SAMRAT UTSAV 2027</strong>.
+          </p>
+
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={() => scrollToSection('schedule')}
+              className="px-6 py-3 text-xs sm:text-sm font-bold text-slate-950 bg-gradient-to-r from-cyan-400 to-sky-300 hover:from-cyan-300 hover:to-sky-200 rounded-xl transition-all shadow-[0_0_20px_rgba(56,189,248,0.35)] flex items-center gap-2"
+            >
+              <span>Explore Day-Wise Schedules</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={() => scrollToSection('register')}
+              className="px-6 py-3 text-xs sm:text-sm font-semibold text-white bg-black/50 hover:bg-black/70 backdrop-blur-md border border-white/20 rounded-xl transition-colors"
+            >
+              Delegate Registration & Inquiries
+            </button>
+          </div>
+        </div>
+
+        {/* Bottom Scroll Indicator: Tells user that scrolling brings them down, and scrolling up brings the landing back */}
+        <div className="relative z-10 w-full pb-8 flex flex-col items-center justify-center text-center text-xs text-slate-400">
+          <button
+            onClick={() => scrollToSection('overview')}
+            className="group flex flex-col items-center gap-1.5 hover:text-white transition-colors cursor-pointer"
+          >
+            <span className="text-[11px] font-mono uppercase tracking-widest text-slate-300 drop-shadow">
+              Scroll Down to Enter Festival
+            </span>
+            <ChevronDown className="w-5 h-5 text-cyan-400 animate-bounce group-hover:text-white" />
+          </button>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* STICKY NAVBAR (With Sangam & SATI College Logos + Supabase Student Auth)  */}
+      {/* ========================================================================= */}
       <Navbar 
         activeSection={activeSection}
         onNavigate={scrollToSection}
         bookmarkCount={bookmarks.length}
         onOpenItinerary={() => setItineraryDrawerOpen(true)}
         onOpenRegister={() => scrollToSection('register')}
-        onPlayCinematic={() => setIsPlayingCinematic(true)}
+        onOpenAuth={() => setAuthModalOpen(true)}
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-16">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-16">
         
         {/* ========================================================================= */}
-        {/* SECTION 1: HERO VIEWPORT (With UFO Landing Video as Hero Animation + Space Theme) */}
+        {/* SECTION 1: OVERVIEW & PILLARS                                             */}
         {/* ========================================================================= */}
-        <section id="overview" className="space-y-6 pt-2">
-          {/* Main Hero Card Featuring UFO Video */}
-          <div className="relative rounded-3xl overflow-hidden bg-slate-950 text-white border border-cyan-500/30 shadow-[0_0_35px_rgba(6,182,212,0.18)]">
-            {/* Background UFO Landing Video as Hero Animation Asset */}
-            <div className="absolute inset-0 z-0">
-              <video
-                src="/assets/aistudio/UFO_flying_and_landing_313a22aa_dd605a55.mp4"
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="w-full h-full object-cover opacity-45 transform scale-102"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#030714] via-[#030714]/75 to-transparent" />
-              <div className="absolute inset-0 bg-gradient-to-r from-[#030714]/90 via-[#030714]/60 to-transparent" />
-            </div>
+        <section id="overview" className="space-y-6 pt-2 scroll-mt-20">
+          {/* Main Sangam Overview Card */}
+          <div className="relative rounded-3xl overflow-hidden bg-slate-950 text-white border border-slate-800 shadow-xl p-8 sm:p-12">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+              <div className="space-y-4 max-w-2xl">
+                <div className="flex items-center gap-3">
+                  <SangamLogo className="h-10 sm:h-12" showWordmark={true} />
+                  <span className="h-8 w-px bg-slate-700" />
+                  <SatiCollegeLogo className="h-10 sm:h-12" showSubtext={true} />
+                </div>
 
-            {/* Hero Content */}
-            <div className="relative z-10 px-6 sm:px-10 lg:px-14 py-12 sm:py-20 max-w-4xl space-y-6">
-              {/* Institution Subtitle kicker */}
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-cyan-400">
-                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(56,189,248,0.9)]" />
-                <span>Samrat Ashok Technological Institute, Vidisha</span>
-                <span aria-hidden="true" className="text-slate-600">·</span>
-                <span>Space & Technology Chapter</span>
+                <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
+                  Welcome to <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-cyan-300 bg-clip-text text-transparent">Sangam</span>
+                </h2>
+
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Established in 1960 in the historic city of Vidisha, Samrat Ashok Technological Institute presents <strong>Sangam</strong> — our overarching festival ecosystem uniting the technical innovation of <strong>TECHNOVISION 2026</strong>, the cultural radiance of <strong>SAMRAT UTSAV 2027</strong>, and the collegiate athletic calendar.
+                </p>
+
+                <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-cyan-300 pt-2">
+                  <span>• 2 Major Festivals</span>
+                  <span>• 15+ Engineering Tracks</span>
+                  <span>• 4 Athletic Tournaments</span>
+                  <span>• Central India Hub</span>
+                </div>
               </div>
 
-              {/* Headline */}
-              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
-                One Campus. Two Festivals.<br />
-                <span className="bg-gradient-to-r from-cyan-400 via-sky-300 to-amber-300 bg-clip-text text-transparent">
-                  An Interstellar Odyssey.
+              {/* Quick Action Box */}
+              <div className="w-full lg:w-80 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-3.5 shrink-0">
+                <span className="text-xs font-semibold uppercase tracking-wider text-cyan-400 block">
+                  Quick Access Portal
                 </span>
-              </h1>
-
-              {/* Sub-headline prose */}
-              <p className="text-base sm:text-lg text-slate-300 max-w-2xl leading-relaxed">
-                Welcome to SATI Fest Hub — central India’s premier cosmic student gathering: the <strong>TECHNOVISION 2026</strong> national technical & robotics symposium, the upcoming <strong>SAMRAT UTSAV 2027</strong> celestial cultural festival, and the 2027 Sports Activity Calendar.
-              </p>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-4 pt-2">
                 <button
                   onClick={() => scrollToSection('schedule')}
-                  className="px-6 py-3 text-xs sm:text-sm font-bold text-slate-950 bg-gradient-to-r from-cyan-400 to-sky-300 hover:from-cyan-300 hover:to-sky-200 rounded-xl transition-all shadow-[0_0_15px_rgba(56,189,248,0.3)] flex items-center gap-2"
+                  className="w-full py-2.5 px-3 text-xs font-bold text-slate-950 bg-gradient-to-r from-cyan-400 to-sky-300 hover:from-cyan-300 hover:to-sky-200 rounded-lg transition-all text-center flex items-center justify-center gap-2"
                 >
-                  <span>Explore Mission Schedule</span>
+                  <span>View Full Schedule</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
-
-                <button
-                  onClick={() => setIsPlayingCinematic(true)}
-                  className="px-5 py-3 text-xs sm:text-sm font-semibold text-white bg-slate-900/90 hover:bg-slate-800/90 border border-cyan-500/40 rounded-xl transition-all flex items-center gap-2 hover:border-cyan-400"
-                >
-                  <Play className="w-4 h-4 text-cyan-400 fill-cyan-400" />
-                  <span>Replay Full-Screen Landing</span>
-                </button>
-
                 <button
                   onClick={() => scrollToSection('register')}
-                  className="px-5 py-3 text-xs sm:text-sm font-semibold text-slate-300 hover:text-white transition-colors"
+                  className="w-full py-2.5 px-3 text-xs font-semibold text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors text-center"
                 >
-                  Register Online
+                  Delegate Registration
                 </button>
+                {!user && (
+                  <button
+                    onClick={() => setAuthModalOpen(true)}
+                    className="w-full py-2 px-3 text-xs font-medium text-cyan-300 hover:text-white bg-slate-950 rounded-lg border border-slate-700 transition-colors text-center"
+                  >
+                    Student Login (Supabase)
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -269,16 +371,14 @@ export default function App() {
         </section>
 
         {/* ========================================================================= */}
-        {/* SECTION 2: TECHNOVISION 2026 (Technical Festival Showcase) */}
+        {/* SECTION 2: TECHNOVISION 2026 (Technical Festival Showcase)                */}
         {/* ========================================================================= */}
         <section id="technovision" className="space-y-8 scroll-mt-20">
           {/* Section Header */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-slate-800">
             <div>
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-cyan-400">
-                <span>Samrat Ashok Technological Institute, Vidisha</span>
-                <span aria-hidden="true" className="text-slate-600">·</span>
-                <span>Category: Technical</span>
+                <span>Sangam 2026–27 · Technical Symposium Chapter</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-1">
                 TECHNOVISION 2026
@@ -383,16 +483,14 @@ export default function App() {
         </section>
 
         {/* ========================================================================= */}
-        {/* SECTION 3: SAMRAT UTSAV 2027 (Dedicated Cultural Festival Page) */}
+        {/* SECTION 3: SAMRAT UTSAV 2027 (Dedicated Cultural Festival Page)           */}
         {/* ========================================================================= */}
         <section id="samrat-utsav" className="space-y-8 scroll-mt-20">
           {/* Section Header */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-slate-800">
             <div>
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-amber-400">
-                <span>Samrat Ashok Technological Institute, Vidisha</span>
-                <span aria-hidden="true" className="text-slate-600">·</span>
-                <span>Category: Cultural</span>
+                <span>Sangam 2026–27 · Cultural Celebration Chapter</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-1">
                 SAMRAT UTSAV 2027
@@ -553,16 +651,14 @@ export default function App() {
         </section>
 
         {/* ========================================================================= */}
-        {/* SECTION 4: SPORTS ACTIVITY CALENDAR 2027 */}
+        {/* SECTION 4: SPORTS ACTIVITY CALENDAR 2027                                  */}
         {/* ========================================================================= */}
         <section id="sports" className="space-y-6 scroll-mt-20">
           {/* Section Header */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-slate-800">
             <div>
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-cyan-400">
-                <span>Department of Physical Education & Sports</span>
-                <span aria-hidden="true" className="text-slate-600">·</span>
-                <span>SATI Vidisha</span>
+                <span>Department of Physical Education & Sports · SATI Vidisha</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-1">
                 Sports Activity Calendar — 2027
@@ -653,7 +749,7 @@ export default function App() {
         </section>
 
         {/* ========================================================================= */}
-        {/* SECTION 5: MASTER SCHEDULE EXPLORER (Day-Wise, Time-Wise, Filterable) */}
+        {/* SECTION 5: MASTER SCHEDULE EXPLORER (Day-Wise, Time-Wise, Filterable)    */}
         {/* ========================================================================= */}
         <section className="space-y-6 scroll-mt-20">
           <ScheduleExplorer
@@ -664,31 +760,32 @@ export default function App() {
         </section>
 
         {/* ========================================================================= */}
-        {/* SECTION 6: REGISTRATION & INQUIRIES PORTAL */}
+        {/* SECTION 6: REGISTRATION & INQUIRIES PORTAL                               */}
         {/* ========================================================================= */}
         <section className="scroll-mt-20">
           <RegistrationForm
             preselectedEvent={preselectedEventForReg}
             onClearPreselectedEvent={() => setPreselectedEventForReg(null)}
+            onOpenAuth={() => setAuthModalOpen(true)}
           />
         </section>
 
         {/* ========================================================================= */}
-        {/* SECTION 7: PHOTO GALLERY */}
+        {/* SECTION 7: PHOTO GALLERY                                                 */}
         {/* ========================================================================= */}
         <section className="scroll-mt-20">
           <PhotoGallery />
         </section>
 
         {/* ========================================================================= */}
-        {/* SECTION 8: SATI VIDISHA CAMPUS & VENUE GUIDE */}
+        {/* SECTION 8: SATI VIDISHA CAMPUS & VENUE GUIDE                             */}
         {/* ========================================================================= */}
         <section className="scroll-mt-20">
           <CampusGuide />
         </section>
 
         {/* ========================================================================= */}
-        {/* SECTION 9: FREQUENTLY ASKED QUESTIONS */}
+        {/* SECTION 9: FREQUENTLY ASKED QUESTIONS                                     */}
         {/* ========================================================================= */}
         <section id="faq" className="w-full bg-slate-900/80 rounded-2xl border border-slate-800 p-6 sm:p-10 shadow-xs">
           <div className="max-w-3xl mx-auto space-y-6">
@@ -705,6 +802,15 @@ export default function App() {
             </div>
 
             <div className="space-y-4 pt-4 text-xs sm:text-sm">
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+                <h4 className="font-bold text-white">
+                  What is Sangam?
+                </h4>
+                <p className="text-slate-400 leading-relaxed text-xs">
+                  Sangam is the unified annual festival umbrella of Samrat Ashok Technological Institute (SATI), Vidisha. It integrates both the technical symposium (Technovision 2026) and the cultural festival (Samrat Utsav 2027), along with the academic sports calendar.
+                </p>
+              </div>
+
               <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
                 <h4 className="font-bold text-white">
                   Are Technovision 2026 events open for registration right now?
@@ -725,19 +831,10 @@ export default function App() {
 
               <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
                 <h4 className="font-bold text-white">
-                  How can outstation colleges participate in the 2027 Sports meets?
+                  How does student authentication with Supabase work?
                 </h4>
                 <p className="text-slate-400 leading-relaxed text-xs">
-                  College sports officers or student team captains can register player rosters using the Registration Portal. SATI provides player guest housing and changing amenities at the western campus sports pavilion upon verification.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
-                <h4 className="font-bold text-white">
-                  Does SATI Fest Hub require account registration or fees?
-                </h4>
-                <p className="text-slate-400 leading-relaxed text-xs">
-                  No. SATI Fest Hub is a client-side portal requiring zero login credentials, passwords, or payment gateways. Your registration pass is generated and validated entirely in your browser.
+                  Students can log in with their college email address and password to auto-populate their registered identity across all festival forms, retrieve past delegate passes, and manage their personal itinerary.
                 </p>
               </div>
             </div>
@@ -754,6 +851,12 @@ export default function App() {
         onRegisterInterest={handleRegisterInterest}
       />
 
+      {/* Supabase Student Auth Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+      />
+
       {/* Personal Itinerary Drawer / Modal */}
       {itineraryDrawerOpen && (
         <div 
@@ -767,7 +870,7 @@ export default function App() {
             <div className="flex items-center justify-between pb-4 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <Bookmark className="w-5 h-5 text-amber-400 fill-amber-400" />
-                <h3 className="text-lg font-bold text-white">My Fest Itinerary</h3>
+                <h3 className="text-lg font-bold text-white">My Sangam Itinerary</h3>
                 <span className="text-xs text-slate-400">({bookmarks.length} Saved)</span>
               </div>
               <button 
@@ -831,8 +934,16 @@ export default function App() {
         </div>
       )}
 
-      {/* Quiet Collegiate Footer */}
+      {/* Quiet Collegiate Footer with Sangam & SATI Logos */}
       <Footer onNavigate={scrollToSection} />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <SangamFestApp />
+    </AuthProvider>
   );
 }

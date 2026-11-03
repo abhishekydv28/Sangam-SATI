@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FestEvent } from '../data/festivalsData';
+import { useAuth } from '../context/AuthContext';
 import { 
   CheckCircle2, 
   AlertCircle, 
@@ -12,7 +13,9 @@ import {
   Mail,
   Phone,
   Building,
-  GraduationCap
+  GraduationCap,
+  ShieldCheck,
+  LogIn
 } from 'lucide-react';
 
 export interface RegistrationRecord {
@@ -29,17 +32,21 @@ export interface RegistrationRecord {
   teamName?: string;
   notes?: string;
   timestamp: string;
+  studentId?: string;
 }
 
 interface RegistrationFormProps {
   preselectedEvent?: FestEvent | null;
   onClearPreselectedEvent?: () => void;
+  onOpenAuth?: () => void;
 }
 
 export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   preselectedEvent,
-  onClearPreselectedEvent
+  onClearPreselectedEvent,
+  onOpenAuth
 }) => {
+  const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<'register' | 'lookup'>('register');
   
   // Form State
@@ -54,6 +61,17 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   const [participationMode, setParticipationMode] = useState<'Individual' | 'Team'>('Individual');
   const [teamName, setTeamName] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Auto-fill from Supabase authenticated profile
+  useEffect(() => {
+    if (profile) {
+      if (profile.fullName) setFullName(profile.fullName);
+      if (profile.collegeEmail) setEmail(profile.collegeEmail);
+      if (profile.college) setCollege(profile.college);
+      if (profile.branch) setDepartment(profile.branch);
+      if (profile.year) setYear(profile.year);
+    }
+  }, [profile]);
 
   // Validation Errors
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -118,7 +136,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
 
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const newRecord: RegistrationRecord = {
-      id: `SATI-2027-${randomSuffix}`,
+      id: `SANGAM-2027-${randomSuffix}`,
       fullName: fullName.trim(),
       email: email.trim(),
       phone: phone.trim(),
@@ -194,10 +212,10 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
             Participation & Inquiries Portal
           </span>
           <h3 className="text-2xl md:text-3xl font-bold text-white tracking-tight mt-1">
-            Delegate Registration & Mission Waitlist
+            Sangam Delegate Registration & Waitlist
           </h3>
           <p className="text-xs md:text-sm text-slate-400 mt-1">
-            Register your early interest for Samrat Utsav 2027, sports meets, or submit symposium inquiries to SATI organizers.
+            Register your official interest for Samrat Utsav 2027, Technovision proceedings, or SATI sports meets.
           </p>
         </div>
 
@@ -230,13 +248,13 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
             <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
               <div>
                 <span className="text-xs text-amber-400 font-semibold tracking-wider uppercase">
-                  Confirmed Registration Receipt
+                  Confirmed Delegate Pass
                 </span>
-                <h4 className="text-lg font-bold text-white mt-0.5">SATI Fest Hub · Vidisha</h4>
+                <h4 className="text-lg font-bold text-white mt-0.5">Sangam 2026–27 · SATI Vidisha</h4>
               </div>
               <div className="text-right">
                 <span className="text-[10px] text-slate-400 block font-mono">Reference ID</span>
-                <span className="font-mono text-sm font-bold text-amber-400 tracking-wide">
+                <span className="font-mono text-sm font-bold text-cyan-400 tracking-wide">
                   {submittedRecord.id}
                 </span>
               </div>
@@ -363,6 +381,33 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
       ) : (
         /* New Registration Form */
         <form onSubmit={handleSubmit} className="pt-6 space-y-6">
+          {/* Supabase Student Auth Banner */}
+          {user ? (
+            <div className="p-3 bg-cyan-950/40 border border-cyan-500/40 rounded-xl text-xs text-cyan-200 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
+                <span>
+                  <strong className="text-white">Authenticated as {profile?.fullName}:</strong> Student profile details auto-populated from Supabase.
+                </span>
+              </div>
+              <span className="text-[10px] bg-cyan-500/20 text-cyan-300 font-mono px-2 py-0.5 rounded-md border border-cyan-500/30">
+                {profile?.scholarNo || 'Verified Student'}
+              </span>
+            </div>
+          ) : onOpenAuth ? (
+            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 flex items-center justify-between">
+              <span>Are you a registered SATI student? Sign in with your college credentials to auto-fill your details.</span>
+              <button
+                type="button"
+                onClick={onOpenAuth}
+                className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 underline shrink-0 ml-3 flex items-center gap-1"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Student Login</span>
+              </button>
+            </div>
+          ) : null}
+
           {preselectedEvent && (
             <div className="p-3 bg-cyan-950/60 border border-cyan-800/80 rounded-xl text-xs text-cyan-200 flex items-center justify-between">
               <div>
